@@ -2,9 +2,7 @@
 # Configuración de Traefik con Docker Compose
 
 ## Integrantes del Grupo
-- Nombre Apellido 1
-- Nombre Apellido 2 
-- Nombre Apellido 3
+Edwin Camilo Becerra Meche
 
 ## Flujo de Tráfico en Traefik
 
