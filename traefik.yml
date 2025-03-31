@@ -1,0 +1,13 @@
+entryPoints:
+  web:
+    address: ":80"
+  websecure:
+    address: ":443"
+  
+api:
+  dashboard: true
+  insecure: false  # For the workshop, we'll use insecure mode
+
+providers:
+  docker:
+    exposedByDefault: false

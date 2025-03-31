@@ -1,0 +1,79 @@
+# Configuración de middlewares (funcionalidades intermedias para las solicitudes HTTP)
+http:
+  middlewares:
+    # Middleware de autenticación básica para áreas administrativas
+    auth-admin:
+      basicAuth:
+        users:
+          # Usuario y contraseña hasheada (formato htpasswd)
+          # Ejemplo: usuario 'admin' con contraseña 'uptc'
+          - "admin:$apr1$gFVbkW7D$uNRx5Lm2HECMkK7lMfpqK0"
+
+      # Añade prefijo /admin a las rutas para agrupamiento lógico
+      addPrefix:
+        prefix: "/admin"
+
+    # Middleware de lista blanca de IPs (restricción por direcciones IP)
+    ipwhitelist:
+      ipWhiteList:
+        sourceRange:
+          - "127.0.0.1/32"    # Localhost
+          - "192.168.1.0/24"  # Red local
+          - "172.0.0.0/8"     # Rango de direcciones privadas
+
+    # Middleware de limitación de tasa (protección contra abuso)
+    rate-limit:
+      rateLimit:
+        average: 100  # 100 solicitudes por segundo en promedio
+        burst: 50     # Permite picos de hasta 50 solicitudes adicionales
+        entryPoint: web  # Solo aplica al entrypoint web (HTTP)
+
+    # Middleware de cabeceras de seguridad (mejoras de seguridad HTTP)
+    secure-headers:
+      headers:
+        sslRedirect: true        # Redirige HTTP a HTTPS automáticamente
+        stsIncludeSubdomains: true # HSTS para todos los subdominios
+        stsPreload: true         # Permite pre-carga HSTS en navegadores
+        stsSeconds: 31536000     # Duración HSTS (1 año en segundos)
+        frameDeny: true          # Previene clickjacking (X-Frame-Options: DENY)
+
+  # Configuración de routers (reglas de enrutamiento)
+  routers:
+    # Router principal para la API
+    api-router:
+      rule: "Host(`api.localhost`)"  # Atiende solicitudes para api.localhost
+      entryPoints: ["web", "websecure"]  # Acepta tráfico HTTP y HTTPS
+      middlewares:
+        - "rate-limit"    # Aplica limitación de tasa
+        - "secure-headers" # Aplica cabeceras de seguridad
+      service: "api-backend"  # Servicio destino
+      tls: {}  # Habilita TLS con configuración por defecto
+
+    # Router para la sección administrativa
+    admin-router:
+      rule: "Host(`api.localhost`) && PathPrefix(`/admin`)"  # Rutas /admin
+      entryPoints: ["websecure"]  # Solo acepta HTTPS (no HTTP)
+      middlewares:
+        - "auth-admin"   # Requiere autenticación básica
+        - "ipwhitelist"  # Restringe por IP
+      service: "admin-api"  # Servicio destino
+      tls: {}  # Habilita TLS
+
+# Configuración TLS/SSL
+tls:
+  options:
+    # Configuración por defecto para TLS
+    default:
+      minVersion: "VersionTLS12"  # Versión mínima de TLS (1.2)
+      cipherSuites:
+        # Algoritmos de cifrado permitidos (priorizados)
+        - "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"  # Fuerte, ampliamente compatible
+        - "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"  # Más fuerte, mayor seguridad
+  certificates: []  # Lista de certificados (se puede llenar dinámicamente)
+  
+  # Ejemplo de configuración para Let's Encrypt (comentado):
+  # stores:
+  #   default:
+  #     defaultCertificate:
+  #       certFile: /path/to/cert.crt  # Ruta al certificado
+  #       keyFile: /path/to/cert.key   # Ruta a la clave privada
